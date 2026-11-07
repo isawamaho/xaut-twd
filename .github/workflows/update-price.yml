@@ -2,8 +2,8 @@ name: 更新 XAUT 價格並部署網頁
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # 每 5 分鐘（GitHub 實際執行常會延遲）
-  workflow_dispatch:         # 允許在 Actions 頁面手動執行
+    - cron: "3,18,33,48 * * * *"
+  workflow_dispatch:
   push:
     branches: [main]
 
