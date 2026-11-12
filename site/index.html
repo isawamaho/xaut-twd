@@ -16,6 +16,13 @@
   .sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
   .price { font-size: 14px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .price-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .btn2 { padding: 6px 12px; font-size: 13px; background: transparent; color: var(--gold); border: 1px solid var(--gold); white-space: nowrap; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .status:empty { display: none; }
+  .token { display: none; margin-top: 10px; font-size: 13px; }
+  .token p { margin: 0 0 6px; color: var(--muted); line-height: 1.6; }
+  .link { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; font-size: 12px; font-weight: 400; cursor: pointer; }
   .price b { color: var(--gold); font-variant-numeric: tabular-nums; }
   .price small { color: var(--muted); }
   .warn { color: var(--warn); }
@@ -38,7 +45,21 @@
   <h1>XAUT 持倉 NT$ 估值</h1>
   <p class="sub">以太坊地址上的 Tether Gold，以 MaiCoin Sell Price 計算</p>
   <div class="card">
-    <div class="price" id="priceBox">讀取價格中…</div>
+    <div class="price">
+      <div class="price-head">
+        <div id="priceBox">讀取價格中…</div>
+        <button class="btn2" id="refresh">更新價格</button>
+      </div>
+      <div class="status" id="status"></div>
+      <div class="token" id="tokenBox">
+        <p>更新價格需要 GitHub 權杖（只需 xaut-twd 的 Actions 讀寫權限）。權杖只存在這台裝置的瀏覽器，不會上傳到網站。</p>
+        <div class="row">
+          <input id="tokenInput" type="password" placeholder="github_pat_..." autocomplete="off">
+          <button id="tokenSave">儲存並更新</button>
+        </div>
+      </div>
+      <div style="margin-top:6px"><button class="link" id="tokenClear" hidden>清除已儲存的權杖</button></div>
+    </div>
     <label for="addr">以太坊地址</label>
     <div class="row">
       <input id="addr" placeholder="0x..." autocomplete="off" spellcheck="false">
@@ -60,7 +81,14 @@
 <script>
   const RPC_URLS = ['https://ethereum-rpc.publicnode.com'];   // 可再加入其他 RPC 作為備援
   const XAUT = '0x68749665FF8D2d112Fa859AA293F07A622782F38';
-  const STALE_MIN = 60;   // 價格超過幾分鐘視為過舊，暫停計算
+  const STALE_MIN = 999;  // 價格超過幾分鐘視為過舊，暫停計算
+  const REPO = 'isawamaho/xaut-twd', WORKFLOW = 'update-price.yml', BRANCH = 'main';
+  const TOKEN_KEY = 'xaut_gh_token';
+  const store = {
+    get() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } },
+    set(v) { try { localStorage.setItem(TOKEN_KEY, v); } catch {} },
+    clear() { try { localStorage.removeItem(TOKEN_KEY); } catch {} },
+  };
 
   const $ = id => document.getElementById(id);
   const fmt = (n, d) => Number(n).toLocaleString('zh-TW', { maximumFractionDigits: d });
@@ -75,7 +103,7 @@
       const t = new Date(priceData.fetched_at * 1000).toLocaleString('zh-TW', { hour12: false });
       $('priceBox').innerHTML = `MaiCoin Sell Price：<b>NT$ ${fmt(priceData.sell_price_twd, 2)}</b> `
         + `<small>（${t}，${Math.round(ageMin)} 分鐘前）</small>`
-        + (ageMin > STALE_MIN ? `<div class="warn">價格已超過 ${STALE_MIN} 分鐘未更新</div>` : '');
+        + (ageMin > STALE_MIN ? `<div class="warn">價格已超過 ${STALE_MIN} 分鐘未更新，請按「更新價格」</div>` : '');
     } catch {
       priceData = null;
       $('priceBox').innerHTML = '<span class="warn">無法取得價格資料</span>';
@@ -130,8 +158,72 @@
     }
   }
 
+  // ---------- 手動更新價格：觸發 GitHub Actions ----------
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const setStatus = t => { $('status').textContent = t; };
+  const syncTokenUI = () => { $('tokenClear').hidden = !store.get(); };
+
+  async function triggerWorkflow(token) {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ref: BRANCH }),
+    });
+    return r.status;   // 成功為 204
+  }
+
+  async function refreshPrice() {
+    const token = store.get();
+    if (!token) { $('tokenBox').style.display = 'block'; $('tokenInput').focus(); return; }
+
+    const before = priceData?.fetched_at || 0;
+    $('refresh').disabled = true;
+    try {
+      setStatus('正在觸發更新…');
+      let status;
+      try { status = await triggerWorkflow(token); }
+      catch { setStatus('無法連線到 GitHub，請稍後再試'); return; }
+
+      if (status === 401 || status === 403 || status === 404) {
+        store.clear(); syncTokenUI();
+        $('tokenBox').style.display = 'block';
+        setStatus(`權杖無效或權限不足（${status}），請重新輸入`);
+        return;
+      }
+      if (status !== 204) { setStatus(`觸發失敗（HTTP ${status}）`); return; }
+
+      // 等待 Actions 跑完並部署（通常 1–2 分鐘），每 10 秒檢查一次 price.json
+      const start = Date.now();
+      while (Date.now() - start < 5 * 60 * 1000) {
+        setStatus(`已觸發，等待新價格… ${Math.round((Date.now() - start) / 1000)} 秒`);
+        await sleep(10000);
+        await loadPrice();
+        if (priceData && priceData.fetched_at > before) { setStatus('價格已更新'); return; }
+      }
+      setStatus('超過 5 分鐘仍未更新，請到 GitHub Actions 頁面查看執行狀況');
+    } finally {
+      $('refresh').disabled = false;
+    }
+  }
+
+  $('refresh').onclick = refreshPrice;
+  $('tokenSave').onclick = () => {
+    const v = $('tokenInput').value.trim();
+    if (!v) return;
+    store.set(v); $('tokenInput').value = ''; $('tokenBox').style.display = 'none'; syncTokenUI();
+    refreshPrice();
+  };
+  $('tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('tokenSave').click(); });
+  $('tokenClear').onclick = () => { store.clear(); syncTokenUI(); setStatus('已清除權杖'); };
+
   $('go').onclick = run;
   $('addr').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  syncTokenUI();
   loadPrice();
 </script>
 </body>
