@@ -24,7 +24,6 @@
 |---|---|
 | `site/index.html` | 前端頁面(單一檔案,無建置步驟) |
 | `.github/workflows/update-price.yml` | 部署到 GitHub Pages 的 workflow |
-| `fetch_price.py` | 舊版做法:從 MaiCoin WebSocket 抓價寫成 `price.json`。目前頁面已改用 Worker,不再讀取此檔 |
 
 Worker 的程式碼不在此 repo,請在 Cloudflare 後台維護(見下方)。
 
