@@ -23,9 +23,10 @@
 | 路徑 | 說明 |
 |---|---|
 | `site/index.html` | 前端頁面(單一檔案,無建置步驟) |
+| `worker/index.js` | Cloudflare Worker 價格轉發程式碼(不會自動部署,需手動貼到 Cloudflare) |
 | `.github/workflows/update-price.yml` | 部署到 GitHub Pages 的 workflow |
 
-Worker 的程式碼不在此 repo,請在 Cloudflare 後台維護(見下方)。
+Worker 的程式碼放在 `worker/index.js` 供版本控管,但 GitHub Actions 不會自動部署它;修改後要手動貼到 Cloudflare 後台並 Deploy(見下方)。
 
 ## 部署
 
@@ -37,7 +38,7 @@ Worker 的程式碼不在此 repo,請在 Cloudflare 後台維護(見下方)。
 
 ### 2. 價格 Worker(Cloudflare)
 
-1. 在 Cloudflare 建立 Worker,貼上價格轉發程式碼並 Deploy。
+1. 在 Cloudflare 建立 Worker,貼上 `worker/index.js` 的內容並 Deploy。
 2. 把 Worker 的 `ALLOWED_ORIGINS` 設為允許讀取價格的網站來源(CORS),例如:
 
    ```js
