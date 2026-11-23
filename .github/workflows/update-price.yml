@@ -1,7 +1,6 @@
 name: 更新 XAUT 價格並部署網頁
 
 on:
-  schedule:
   workflow_dispatch:
   push:
     branches: [main]
