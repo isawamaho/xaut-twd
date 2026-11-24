@@ -48,7 +48,7 @@ Worker 的程式碼放在 `worker/index.js` 供版本控管,但 GitHub Actions �
    ```
 
    來源格式為「協定 + 網域」,不含結尾 `/` 或路徑;每個網域各占一行。
-3. 把 `site/index.html` 裡的 `PRICE_URL` 改成你的 Worker 網址(`https://<名稱>.<子網域>.workers.dev/price`)。
+3. 把 `site/index.html` 裡的 `PRICE_URL` 改成你的 Worker 網址(`https://<名稱>.<子網域>.workers.dev/price`,或綁定自訂網域後的 `https://api.example.com/price`)。
 
 ### 3. 自訂網域(選用)
 
