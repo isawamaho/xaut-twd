@@ -1,33 +1,48 @@
-name: 更新 XAUT 價格並部署網頁
+name: 部署網頁到 GitHub Pages
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/update-price.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# 同一時間只跑一個部署；不取消進行中的部署
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  # 拆成獨立 job：等上傳的 artifact 完整登錄後才部署，
+  # 避免 deploy-pages 在同一個 job 內查不到剛上傳的 artifact
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
