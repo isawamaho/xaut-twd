@@ -7,8 +7,12 @@
  * - MAX 暫時失敗時，5 分鐘內的舊價格仍可回傳（標示 stale）
  * - 只允許指定網站從瀏覽器讀取（CORS）
  *
- * 端點：GET /price
+ * 端點：
+ *   GET /       網頁（site/index.html，部署時由 wrangler 打包進 Worker）
+ *   GET /price  價格 JSON
  */
+
+import INDEX_HTML from '../site/index.html';
 
 const MAX_API = 'https://max-api.maicoin.com/api/v3';
 const MARKET = 'xauttwd';
@@ -168,10 +172,19 @@ export default {
         headers: { ...cors, 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Max-Age': '86400' },
       });
     }
-    if (request.method !== 'GET') return json({ error: '只支援 GET' }, 405, cors);
+    if (request.method !== 'GET' && request.method !== 'HEAD') return json({ error: '只支援 GET' }, 405, cors);
 
     const { pathname } = new URL(request.url);
-    if (pathname !== '/price') return json({ error: '請使用 /price' }, 404, cors);
+    if (pathname === '/' || pathname === '/index.html') {
+      return new Response(INDEX_HTML, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=300',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
+    if (pathname !== '/price') return json({ error: '找不到頁面' }, 404, cors);
 
     let stale = false;
     if (!cache || Date.now() - cache.at > TTL_MS) {
