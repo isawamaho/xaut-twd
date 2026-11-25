@@ -1,0 +1,13 @@
+{
+  // Cloudflare Worker：同時提供網頁（site/index.html，打包進 Worker）與價格 API（/price）
+  "name": "xaut-twd",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-23",
+
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "xaut.ihctw.bid", "custom_domain": true },
+    { "pattern": "api.ihctw.bid", "custom_domain": true }
+  ]
+}
