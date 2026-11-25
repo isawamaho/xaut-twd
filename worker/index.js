@@ -20,7 +20,6 @@ const TTL_MS = 15 * 1000;          // 快取時間
 const STALE_MS = 5 * 60 * 1000;    // MAX 失敗時，舊資料最多可用多久
 const DEPTH_LIMIT = 50;            // 取幾筆買單
 const ALLOWED_ORIGINS = [
-  'https://isawamaho.github.io',
   'https://xaut.ihctw.bid',
 ];
 

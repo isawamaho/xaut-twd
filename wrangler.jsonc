@@ -7,7 +7,6 @@
   "workers_dev": true,
   "preview_urls": false,
   "routes": [
-    { "pattern": "xaut.ihctw.bid", "custom_domain": true },
-    { "pattern": "api.ihctw.bid", "custom_domain": true }
+    { "pattern": "xaut.ihctw.bid", "custom_domain": true }
   ]
 }
